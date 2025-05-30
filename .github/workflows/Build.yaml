@@ -19,11 +19,9 @@ jobs:
         # 下载 Mediatek Filogic 架构的 SDK (23.05 版本)
         SDK_URL="https://downloads.openwrt.org/releases/23.05.0/targets/mediatek/filogic/openwrt-sdk-23.05.0-mediatek-filogic_gcc-12.3.0_musl.Linux-x86_64.tar.xz"
         wget $SDK_URL
-        mkdir openwrt
         tar xf openwrt-sdk-*.tar.xz
-        mv openwrt-sdk-* openwrt
-        # 设置环境变量
-        echo "SDK_PATH=$PWD/openwrt" >> $GITHUB_ENV
+        cd openwrt-sdk-*
+        echo "SDK_PATH=$PWD" >> $GITHUB_ENV
         
     - name: Prepare plugin
       run: |
