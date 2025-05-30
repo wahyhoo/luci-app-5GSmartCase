@@ -16,15 +16,17 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y build-essential libncurses5-dev gawk git subversion libssl-dev gettext unzip wget zlib1g-dev
-        git clone https://github.com/openwrt/openwrt.git
+        # 设置伪终端环境变量
+        export TERM=xterm
+        export TERMINFO=/usr/lib/terminfo
+        # 使用浅克隆加快速度
+        git clone --depth=1 https://github.com/openwrt/openwrt.git -b openwrt-23.05
         cd openwrt
-        # 使用稳定分支而非master
-        git checkout openwrt-23.05
-        ./scripts/feeds update -a
-        ./scripts/feeds install -a
+        # 跳过交互式配置
+        touch .config
         # 预下载必要的工具
-        make tools/install
-        make toolchain/install
+        make tools/install -j$(nproc) || make tools/install V=s
+        make toolchain/install -j$(nproc) || make toolchain/install V=s
         
     - name: Prepare plugin
       run: |
@@ -36,12 +38,14 @@ jobs:
     - name: Build package
       run: |
         cd openwrt
+        # 非交互式配置
+        cat > .config <<EOF
+        CONFIG_TARGET_mediatek=y
+        CONFIG_TARGET_mediatek_filogic=y
+        CONFIG_PACKAGE_luci-app-5GSmartCase=y
+        EOF
         make defconfig
-        # 先确保基础工具链构建完成
-        make tools/compile
-        make toolchain/compile
-        # 然后编译我们的包
-        make package/luci-app-5GSmartCase/compile V=s
+        make package/luci-app-5GSmartCase/compile -j$(nproc) || make package/luci-app-5GSmartCase/compile V=s
         
     - name: Collect artifacts
       run: |
