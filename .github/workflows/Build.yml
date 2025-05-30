@@ -1,0 +1,70 @@
+name: Build and Release luci-app-5GSmartCase
+
+on:
+  push:
+    tags:
+      - 'v*' # 当推送v开头的标签时触发
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up OpenWrt SDK
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential libncurses5-dev gawk git subversion libssl-dev gettext unzip wget
+        git clone https://github.com/openwrt/openwrt.git
+        cd openwrt
+        ./scripts/feeds update -a
+        ./scripts/feeds install -a
+        
+    - name: Prepare plugin
+      run: |
+        mkdir -p openwrt/package/luci-app-5GSmartCase
+        cp -r luasrc openwrt/package/luci-app-5GSmartCase/
+        cp -r root openwrt/package/luci-app-5GSmartCase/
+        cp Makefile openwrt/package/luci-app-5GSmartCase/
+        
+    - name: Build package
+      run: |
+        cd openwrt
+        make defconfig
+        make package/luci-app-5GSmartCase/compile V=s
+        
+    - name: Collect artifacts
+      run: |
+        mkdir -p artifacts
+        find openwrt/bin -name "luci-app-5GSmartCase*.ipk" -exec cp {} artifacts/ \;
+        
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: ipk-packages
+        path: artifacts/
+        
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: ipk-packages
+        
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: Release ${{ github.ref_name }}
+        tag_name: ${{ github.ref_name }}
+        body: |
+          Auto-generated release for luci-app-5GSmartCase
+          Contains compiled IPK packages for OpenWrt
+        files: |
+          *.ipk
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
