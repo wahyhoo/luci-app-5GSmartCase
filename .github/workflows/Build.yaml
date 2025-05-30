@@ -20,8 +20,10 @@ jobs:
         SDK_URL="https://downloads.openwrt.org/releases/23.05.0/targets/mediatek/filogic/openwrt-sdk-23.05.0-mediatek-filogic_gcc-12.3.0_musl.Linux-x86_64.tar.xz"
         wget $SDK_URL
         tar xf openwrt-sdk-*.tar.xz
-        cd openwrt-sdk-*
-        echo "SDK_PATH=$PWD" >> $GITHUB_ENV
+        rm openwrt-sdk-23.05.0-mediatek-filogic_gcc-12.3.0_musl.Linux-x86_64.tar.xz
+        mkdir openwrt
+        mv openwrt-sdk-* openwrt
+        echo "SDK_PATH=$PWD/openwrt" >> $GITHUB_ENV
         
     - name: Prepare plugin
       run: |
