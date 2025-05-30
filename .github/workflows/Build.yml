@@ -40,7 +40,7 @@ jobs:
         find openwrt/bin -name "luci-app-5GSmartCase*.ipk" -exec cp {} artifacts/ \;
         
     - name: Upload artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ipk-packages
         path: artifacts/
@@ -51,12 +51,12 @@ jobs:
     
     steps:
     - name: Download artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: ipk-packages
         
     - name: Create Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         name: Release ${{ github.ref_name }}
         tag_name: ${{ github.ref_name }}
