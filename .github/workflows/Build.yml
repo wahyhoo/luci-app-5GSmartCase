@@ -15,11 +15,16 @@ jobs:
     - name: Set up OpenWrt SDK
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential libncurses5-dev gawk git subversion libssl-dev gettext unzip wget
+        sudo apt-get install -y build-essential libncurses5-dev gawk git subversion libssl-dev gettext unzip wget zlib1g-dev
         git clone https://github.com/openwrt/openwrt.git
         cd openwrt
+        # 使用稳定分支而非master
+        git checkout openwrt-23.05
         ./scripts/feeds update -a
         ./scripts/feeds install -a
+        # 预下载必要的工具
+        make tools/install
+        make toolchain/install
         
     - name: Prepare plugin
       run: |
@@ -32,6 +37,10 @@ jobs:
       run: |
         cd openwrt
         make defconfig
+        # 先确保基础工具链构建完成
+        make tools/compile
+        make toolchain/compile
+        # 然后编译我们的包
         make package/luci-app-5GSmartCase/compile V=s
         
     - name: Collect artifacts
