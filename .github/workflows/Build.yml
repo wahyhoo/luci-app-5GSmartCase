@@ -1,9 +1,8 @@
 name: Build and Release luci-app-5GSmartCase
 
-on:
-  push:
-    tags:
-      - 'v*' # 当推送v开头的标签时触发
+on: 
+  repository_dispatch:
+  workflow_dispatch:
 
 jobs:
   build:
