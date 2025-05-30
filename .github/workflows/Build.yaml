@@ -39,10 +39,10 @@ jobs:
         cd $SDK_PATH
         # 生成默认配置
         cat > .config <<EOF
-CONFIG_TARGET_mediatek=y
-CONFIG_TARGET_mediatek_filogic=y
-CONFIG_PACKAGE_luci-app-5GSmartCase=y
-EOF
+        CONFIG_TARGET_mediatek=y
+        CONFIG_TARGET_mediatek_filogic=y
+        CONFIG_PACKAGE_luci-app-5GSmartCase=y
+        EOF
         make defconfig
         # 编译插件 (失败时显示详细日志)
         make package/luci-app-5GSmartCase/compile -j$(nproc) || make package/luci-app-5GSmartCase/compile V=s
