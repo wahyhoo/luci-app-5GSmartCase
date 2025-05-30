@@ -1,4 +1,4 @@
-name: Build and Release luci-app-5GSmartCase
+name: Build and Release luci-app-5GSmartCase (SDK)
 
 on: 
   repository_dispatch:
@@ -15,38 +15,44 @@ jobs:
     - name: Set up OpenWrt SDK
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential libncurses5-dev gawk git subversion libssl-dev gettext unzip wget zlib1g-dev
-        git clone https://github.com/openwrt/openwrt.git
-        cd openwrt
-        # 使用稳定分支而非master
-        git checkout openwrt-23.05
-        ./scripts/feeds update -a
-        ./scripts/feeds install -a
-        # 预下载必要的工具
-        make tools/install
-        make toolchain/install
+        sudo apt-get install -y build-essential libncurses5-dev zlib1g-dev wget
+        # 下载 Mediatek Filogic 架构的 SDK (23.05 版本)
+        SDK_URL="https://downloads.openwrt.org/releases/23.05.0/targets/mediatek/filogic/openwrt-sdk-23.05.0-mediatek-filogic_gcc-12.3.0_musl.Linux-x86_64.tar.xz"
+        wget $SDK_URL
+        tar xf openwrt-sdk-*.tar.xz
+        mv openwrt-sdk-* openwrt
+        # 设置环境变量
+        echo "SDK_PATH=$PWD/openwrt" >> $GITHUB_ENV
         
     - name: Prepare plugin
       run: |
-        mkdir -p openwrt/package/luci-app-5GSmartCase
-        cp -r luasrc openwrt/package/luci-app-5GSmartCase/
-        cp -r root openwrt/package/luci-app-5GSmartCase/
-        cp Makefile openwrt/package/luci-app-5GSmartCase/
+        mkdir -p $SDK_PATH/package/luci-app-5GSmartCase
+        cp -r luasrc $SDK_PATH/package/luci-app-5GSmartCase/
+        cp -r root $SDK_PATH/package/luci-app-5GSmartCase/
+        cp Makefile $SDK_PATH/package/luci-app-5GSmartCase/
+        # 确保 feeds 已更新
+        $SDK_PATH/scripts/feeds update -a
+        $SDK_PATH/scripts/feeds install -a
         
     - name: Build package
       run: |
-        cd openwrt
+        cd $SDK_PATH
+        # 生成默认配置
+        cat > .config <<EOF
+CONFIG_TARGET_mediatek=y
+CONFIG_TARGET_mediatek_filogic=y
+CONFIG_PACKAGE_luci-app-5GSmartCase=y
+EOF
         make defconfig
-        # 先确保基础工具链构建完成
-        make tools/compile
-        make toolchain/compile
-        # 然后编译我们的包
-        make package/luci-app-5GSmartCase/compile V=s
+        # 编译插件 (失败时显示详细日志)
+        make package/luci-app-5GSmartCase/compile -j$(nproc) || make package/luci-app-5GSmartCase/compile V=s
         
     - name: Collect artifacts
       run: |
         mkdir -p artifacts
-        find openwrt/bin -name "luci-app-5GSmartCase*.ipk" -exec cp {} artifacts/ \;
+        find $SDK_PATH/bin -name "luci-app-5GSmartCase*.ipk" -exec cp {} artifacts/ \;
+        # 同时收集依赖包
+        find $SDK_PATH/bin -name "luci-i18n-*-zh-cn*.ipk" -exec cp {} artifacts/ \;
         
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
@@ -70,8 +76,10 @@ jobs:
         name: Release ${{ github.ref_name }}
         tag_name: ${{ github.ref_name }}
         body: |
-          Auto-generated release for luci-app-5GSmartCase
-          Contains compiled IPK packages for OpenWrt
+          OpenWrt 23.05 插件包 (Mediatek Filogic 架构)
+          包含:
+          - luci-app-5GSmartCase 主程序
+          - 中文语言包 (如存在)
         files: |
           *.ipk
       env:
